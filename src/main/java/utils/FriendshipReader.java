@@ -16,6 +16,6 @@ public class FriendshipReader implements MapFunction<String, FriendshipRecord> {
         SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-DDTHH:MI:Sec.SSS+ZZZZ");
         Date recordDate = sdf.parse(r[0]);
 
-        return new FriendshipRecord(recordDate, Integer.valueOf(r[1]), Integer.valueOf(r[2]));
+        return new FriendshipRecord(recordDate, r[0], Integer.valueOf(r[1]), Integer.valueOf(r[2]));
     }
 }

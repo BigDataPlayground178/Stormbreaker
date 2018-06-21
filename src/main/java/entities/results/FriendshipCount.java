@@ -9,7 +9,11 @@ public class FriendshipCount {
     private HashMap<String, Long> counters = new HashMap<String, Long>();
 
     public void incrementCounter(String counterID) {
-        counters.put(counterID, counters.get(counterID) + 1);
+        counters.put(counterID, counters.getOrDefault(counterID, 0L) + 1);
+    }
+
+    public void incrementCounter(String counterID, Long value) {
+        counters.put(counterID, counters.getOrDefault(counterID, 0L) + value);
     }
 
     public Date getTs() {
