@@ -10,7 +10,7 @@ public class FriendshipReader implements MapFunction<String, FriendshipRecord> {
 
     public FriendshipRecord map(String s) throws Exception {
         // <timestamp>|<user1>|<user2> lines must be processed
-        String[] r = s.split("|");
+        String[] r = s.split("\\|",  -1);
 
         // processing timestamp to return a Date
         SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-DDTHH:MI:Sec.SSS+ZZZZ");
