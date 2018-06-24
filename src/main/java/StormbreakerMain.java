@@ -6,7 +6,7 @@ import operators.maps.RelationDuplicateFilter;
 import operators.watermarks.CommentRecordsWatermarks;
 import operators.watermarks.FriendshipCountWatermarks;
 import operators.watermarks.FriendshipRecordsWatermarks;
-import operators.windows.FriendshipCountDayApply;
+import operators.windows.FriendshipCountApply;
 import operators.windows.FriendshipCountWeekApply;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.io.TextInputFormat;
@@ -53,7 +53,7 @@ public class StormbreakerMain {
         // [24h] -> windowing over a 24h timespan
         DataStream<FriendshipCount> friendshipDayDataStream = inputFriendshipStream
                         .windowAll(TumblingEventTimeWindows.of(Time.hours(24)))
-                        .apply(new FriendshipCountDayApply());
+                        .apply(new FriendshipCountApply());
 
         // [7d] -> windowing over a 7 X 24h timespan
         DataStream<FriendshipCount> friendshipWeekDataStream = friendshipDayDataStream
@@ -61,7 +61,10 @@ public class StormbreakerMain {
                         .windowAll(TumblingEventTimeWindows.of(Time.days(7)))
                         .apply(new FriendshipCountWeekApply());
 
-        // TODO [ENTIRE DATASET]
+        // [ENTIRE DATASET] -> windowing over a configurable timespan (in minutes)
+        DataStream<FriendshipCount> friendshipCountDataStream = inputFriendshipStream
+                        .windowAll(TumblingEventTimeWindows.of(Time.minutes(DATASET_STATS_MINUTES)))
+                        .apply(new FriendshipCountApply());
 
         // ---------------------- END QUERY 1 ----------------------
 

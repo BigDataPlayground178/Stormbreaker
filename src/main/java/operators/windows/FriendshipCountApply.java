@@ -8,7 +8,7 @@ import org.apache.flink.util.Collector;
 
 import static utils.StormbreakerConstants.HOUR_COUNTER_PREFIX;
 
-public class FriendshipCountDayApply implements AllWindowFunction<FriendshipRecord, FriendshipCount, TimeWindow> {
+public class FriendshipCountApply implements AllWindowFunction<FriendshipRecord, FriendshipCount, TimeWindow> {
 
     @Override
     public void apply(TimeWindow timeWindow, Iterable<FriendshipRecord> friendshipRecords, Collector<FriendshipCount> out) throws Exception {
