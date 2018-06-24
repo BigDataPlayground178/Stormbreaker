@@ -48,18 +48,20 @@ public class StormbreakerMain {
                 friendshipSamplePath
         ).map(new FriendshipReader());
 
-        // -> assigning watermarks - timestamp of friendship (milliseconds)
-        inputFriendshipStream.assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks());
-        // -> removing relation duplicates (using built-in Flink storage)
-        inputFriendshipStream = inputFriendshipStream.flatMap(new RelationDuplicateFilter());
-
         // -> setting parallelism
         ((SingleOutputStreamOperator<FriendshipRecord>) inputFriendshipStream).setParallelism(1);
 
+        // -> removing relation duplicates (using built-in Flink storage)
+        inputFriendshipStream = inputFriendshipStream.flatMap(new RelationDuplicateFilter());
+
         // [24h] -> windowing over a 24h timespan
         DataStream<FriendshipCount> friendshipDayDataStream = inputFriendshipStream
-                        .windowAll(TumblingEventTimeWindows.of(Time.hours(24)))
+                        .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
+                        .windowAll(TumblingEventTimeWindows.of(Time.minutes(24)))
                         .apply(new FriendshipCountApply());
+
+        friendshipDayDataStream.print();
+
 
         // [7d] -> windowing over a 7 X 24h timespan
         DataStream<FriendshipCount> friendshipWeekDataStream = friendshipDayDataStream
@@ -69,8 +71,10 @@ public class StormbreakerMain {
 
         // [ENTIRE DATASET] -> windowing over a configurable timespan (in minutes)
         DataStream<FriendshipCount> friendshipCountDataStream = inputFriendshipStream
+                        .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
                         .windowAll(TumblingEventTimeWindows.of(Time.minutes(DATASET_STATS_MINUTES)))
                         .apply(new FriendshipCountApply());
+
 
         // ---------------------- END QUERY 1 ----------------------
 
@@ -121,7 +125,7 @@ public class StormbreakerMain {
         DataStream<PostRecord> postRecordDataStream = postsStream.assignTimestampsAndWatermarks(new PostRecordsWatermarks());
 
 
-        // join Comments To Posts and Posts by UserID
+        //join Comments To Posts and Posts by UserID
         // group them by time window
         // count number of comments and number of posts and return a Tuple2<UserID, numpost + numcomments>
         DataStream<Tuple2<Long, Integer>> bcStream = commentsToPost.coGroup(postRecordDataStream)
@@ -162,9 +166,6 @@ public class StormbreakerMain {
                         }
                     }
                 });
-
-        bcStream.print();
-
 
 
 

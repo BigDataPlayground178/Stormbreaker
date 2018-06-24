@@ -13,9 +13,9 @@ public class FriendshipReader implements MapFunction<String, FriendshipRecord> {
         String[] r = s.split("\\|",  -1);
 
         // processing timestamp to return a Date
-        SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-DDTHH:MI:Sec.SSS+ZZZZ");
+        SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-DD'T'HH:mm:ss.SSSz");
         Date recordDate = sdf.parse(r[0]);
 
-        return new FriendshipRecord(recordDate, r[0], Integer.valueOf(r[1]), Integer.valueOf(r[2]));
+        return new FriendshipRecord(recordDate, r[0], Long.valueOf(r[1]), Long.valueOf(r[2]));
     }
 }

@@ -6,10 +6,10 @@ public class FriendshipRecord {
 
     private Date friendshipDate;
     private String rawFriendshipDate;
-    private Integer followingUser;
-    private Integer followedUser;
+    private Long followingUser;
+    private Long followedUser;
 
-    public FriendshipRecord(Date friendshipDate, String rawFriendshipDate, Integer followingUser, Integer followedUser) {
+    public FriendshipRecord(Date friendshipDate, String rawFriendshipDate, Long followingUser, Long followedUser) {
         this.friendshipDate = friendshipDate;
         this.rawFriendshipDate = rawFriendshipDate;
         this.followingUser = followingUser;
@@ -38,19 +38,19 @@ public class FriendshipRecord {
         this.rawFriendshipDate = rawFriendshipDate;
     }
 
-    public Integer getFollowingUser() {
+    public Long getFollowingUser() {
         return followingUser;
     }
 
-    public void setFollowingUser(Integer followingUser) {
+    public void setFollowingUser(Long followingUser) {
         this.followingUser = followingUser;
     }
 
-    public Integer getFollowedUser() {
+    public Long getFollowedUser() {
         return followedUser;
     }
 
-    public void setFollowedUser(Integer followedUser) {
+    public void setFollowedUser(Long followedUser) {
         this.followedUser = followedUser;
     }
 }

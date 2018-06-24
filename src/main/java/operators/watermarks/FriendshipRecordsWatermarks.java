@@ -6,9 +6,11 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 
 import javax.annotation.Nullable;
 
+import static utils.StormbreakerConstants.DATASET_START_TIMESTAMP;
+
 public class FriendshipRecordsWatermarks implements AssignerWithPeriodicWatermarks<FriendshipRecord> {
 
-    private long currentMaxTimestamp = 0;
+    private long currentMaxTimestamp = DATASET_START_TIMESTAMP;
 
     @Nullable
     public Watermark getCurrentWatermark() {
