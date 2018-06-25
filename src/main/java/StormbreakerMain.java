@@ -3,6 +3,8 @@ import entities.records.FriendshipRecord;
 import entities.records.PostRecord;
 import entities.results.FriendshipCount;
 import operators.maps.RelationDuplicateFilter;
+import operators.maps.UserInteractionsFlatMap;
+import operators.selectors.UserKeySelector;
 import operators.watermarks.CommentRecordsWatermarks;
 import operators.watermarks.FriendshipCountWatermarks;
 import operators.watermarks.FriendshipRecordsWatermarks;
@@ -10,6 +12,7 @@ import operators.watermarks.PostRecordsWatermarks;
 import operators.windows.FriendshipCountApply;
 import operators.windows.FriendshipCountWeekApply;
 import operators.windows.PostRankApply;
+import operators.windows.UserRankJoin;
 import org.apache.flink.api.common.functions.CoGroupFunction;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.java.functions.KeySelector;
@@ -116,18 +119,26 @@ public class StormbreakerMain {
 
         // ---------------------- BEGIN QUERY 3 --------------------
 
+        // -> retrieving number of relations created by user
+        DataStream<Tuple2<Long, Integer>> aStream = inputFriendshipStream
+                    .flatMap(new UserInteractionsFlatMap())
+                    .keyBy(0)
+                    .window(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
+                    .sum(1);
+
+
+        // -> retrieving posts stream
         DataStream<PostRecord> postsStream = env.readFile(
                 new TextInputFormat(new Path(postsSamplePath)),
                 postsSamplePath
         ).map(new PostReader());
 
-        // assing timestam and watermarks to stream of Posts
+        // -> assigning timestamp and watermarks to stream of Posts
         DataStream<PostRecord> postRecordDataStream = postsStream.assignTimestampsAndWatermarks(new PostRecordsWatermarks());
 
-
-        //join Comments To Posts and Posts by UserID
-        // group them by time window
-        // count number of comments and number of posts and return a Tuple2<UserID, numpost + numcomments>
+        // -> join Comments To Posts and Posts by UserID
+        //    group them by time window
+        //    count number of comments and number of posts and return a Tuple2<UserID, numpost + numcomments>
         DataStream<Tuple2<Long, Integer>> bcStream = commentsToPost.coGroup(postRecordDataStream)
                 .where(new KeySelector<CommentRecord, Long>() {
                     @Override
@@ -139,7 +150,7 @@ public class StormbreakerMain {
                     public Long getKey(PostRecord postRecord) throws Exception {
                         return postRecord.getUser_id();
                     }
-                }).window(TumblingEventTimeWindows.of(Time.days(7)))
+                }).window(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
                 .apply(new CoGroupFunction<CommentRecord, PostRecord, Tuple2<Long, Integer>>() {
                     @Override
                     public void coGroup(Iterable<CommentRecord> iterable, Iterable<PostRecord> iterable1, Collector<Tuple2<Long, Integer>> collector) throws Exception {
@@ -167,11 +178,11 @@ public class StormbreakerMain {
                     }
                 });
 
-
-
-
-
-
+        // -> finally merging the two streams to compute user stats for ranking
+        DataStream<Tuple2<Long, Integer>> userRankStream = aStream.join(bcStream)
+                .where(new UserKeySelector()).equalTo(new UserKeySelector())
+                .window(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
+                .apply(new UserRankJoin());
 
         // ---------------------- END QUERY 3 ----------------------
 

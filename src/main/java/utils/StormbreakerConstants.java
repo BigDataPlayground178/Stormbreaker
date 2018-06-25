@@ -13,4 +13,5 @@ public class StormbreakerConstants {
 
     public static final Long DATASET_START_TIMESTAMP  = 1265001152L * 1000;
     public static final Integer DATASET_STATS_MINUTES = 60;
+    public static final Integer USERS_RANKING_MINUTES = 60;
 }
