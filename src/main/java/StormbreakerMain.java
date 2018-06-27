@@ -55,7 +55,7 @@ public class StormbreakerMain {
         // [24h] -> windowing over a 24h timespan
         DataStream<FriendshipCount> friendshipDayDataStream = inputFriendshipStream
                         .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
-                        .windowAll(TumblingEventTimeWindows.of(Time.minutes(24)))
+                        .windowAll(TumblingEventTimeWindows.of(Time.hours(24)))
                         .apply(new FriendshipCountApply());
 
         // [7d] -> windowing over a 7 X 24h timespan
@@ -180,13 +180,13 @@ public class StormbreakerMain {
         // -> finally merging the two streams to compute user stats for ranking
         DataStream<Tuple3<Long, Integer, Long>> userRankStream = aStream.join(bcStream)
                 .where(new UserKeySelector()).equalTo(new UserKeySelector())
-                .window(TumblingEventTimeWindows.of(Time.seconds(USERS_RANKING_MINUTES)))
+                .window(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
                 .apply(new UserRankJoin());
         userRankStream = userRankStream.assignTimestampsAndWatermarks(new UserRankWatermarks());
 
         // -> retrieving first N users to build the ranking
         DataStream<UserRank> userRank = userRankStream
-                .windowAll(TumblingEventTimeWindows.of(Time.seconds(USERS_RANKING_MINUTES)))
+                .windowAll(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
                 .apply(new UserRanking());
 
         // ---------------------- END QUERY 3 ----------------------

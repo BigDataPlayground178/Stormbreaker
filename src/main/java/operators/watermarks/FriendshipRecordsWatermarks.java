@@ -18,7 +18,7 @@ public class FriendshipRecordsWatermarks implements AssignerWithPeriodicWatermar
     }
 
     public long extractTimestamp(FriendshipRecord friendshipRecord, long l) {
-        long timestamp = friendshipRecord.getFriendshipDate().getTime();        // milliseconds
+        long timestamp = friendshipRecord.getFriendshipDate().toInstant().toEpochMilli();        // milliseconds
         currentMaxTimestamp = Math.max(currentMaxTimestamp, timestamp);
         return timestamp;
     }

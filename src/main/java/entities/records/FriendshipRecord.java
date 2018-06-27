@@ -1,15 +1,15 @@
 package entities.records;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 
 public class FriendshipRecord {
 
-    private Date friendshipDate;
+    private ZonedDateTime friendshipDate;
     private String rawFriendshipDate;
     private Long followingUser;
     private Long followedUser;
 
-    public FriendshipRecord(Date friendshipDate, String rawFriendshipDate, Long followingUser, Long followedUser) {
+    public FriendshipRecord(ZonedDateTime friendshipDate, String rawFriendshipDate, Long followingUser, Long followedUser) {
         this.friendshipDate = friendshipDate;
         this.rawFriendshipDate = rawFriendshipDate;
         this.followingUser = followingUser;
@@ -17,11 +17,11 @@ public class FriendshipRecord {
     }
 
 
-    public Date getFriendshipDate() {
+    public ZonedDateTime getFriendshipDate() {
         return friendshipDate;
     }
 
-    public void setFriendshipDate(Date friendshipDate) {
+    public void setFriendshipDate(ZonedDateTime friendshipDate) {
         this.friendshipDate = friendshipDate;
     }
 

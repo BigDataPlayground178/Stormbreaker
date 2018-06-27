@@ -3,8 +3,8 @@ package utils;
 import entities.records.FriendshipRecord;
 import org.apache.flink.api.common.functions.MapFunction;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class FriendshipReader implements MapFunction<String, FriendshipRecord> {
 
@@ -13,9 +13,9 @@ public class FriendshipReader implements MapFunction<String, FriendshipRecord> {
         String[] r = s.split("\\|",  -1);
 
         // processing timestamp to return a Date
-        SimpleDateFormat sdf = new SimpleDateFormat("YYYY-MM-DD'T'HH:mm:ss.SSSz");
-        Date recordDate = sdf.parse(r[0]);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
 
-        return new FriendshipRecord(recordDate, r[0], Long.valueOf(r[1]), Long.valueOf(r[2]));
+
+        return new FriendshipRecord(ZonedDateTime.parse(r[0], formatter), r[0], Long.valueOf(r[1]), Long.valueOf(r[2]));
     }
 }
