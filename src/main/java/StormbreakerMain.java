@@ -13,10 +13,9 @@ import operators.watermarks.*;
 import operators.windows.*;
 import org.apache.flink.api.common.functions.CoGroupFunction;
 import org.apache.flink.api.common.functions.FilterFunction;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.api.java.io.TextInputFormat;
 import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.AllWindowedStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -25,10 +24,13 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer08;
 import org.apache.flink.util.Collector;
 import utils.CommentReader;
 import utils.FriendshipReader;
 import utils.PostReader;
+
+import java.util.Properties;
 
 import static utils.StormbreakerConstants.*;
 
@@ -42,25 +44,46 @@ public class StormbreakerMain {
         //env.getConfig().setAutoWatermarkInterval(50);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
+        // -------------------- SOURCE STREAMS ---------------------
+        // preparing Kafka properties
+        Properties properties = new Properties();
+        properties.setProperty("bootstrap.servers", KAFKA_BOOTSTRAP_SERVER);
+        properties.setProperty("zookeeper.connect", KAFKA_ZOOKEEPER_SERVER);
+
+        // -> friendships records
+        DataStream<FriendshipRecord> friendshipStream = env
+                .addSource(new FlinkKafkaConsumer08<>(KAFKA_FRIENDSHIP_TOPIC, new SimpleStringSchema(), properties))
+                .map(new FriendshipReader());
+        // -> comments records
+        DataStream<CommentRecord> commentsStream = env
+                .addSource(new FlinkKafkaConsumer08<>(KAFKA_COMMENTS_TOPIC, new SimpleStringSchema(), properties))
+                .map(new CommentReader());
+        // -> posts records
+        DataStream<PostRecord> postsStream = env
+                .addSource(new FlinkKafkaConsumer08<>(KAFKA_POSTS_TOPIC, new SimpleStringSchema(), properties))
+                .map(new PostReader());
+
         // --------------------- START QUERY 1 ---------------------
         // [SAMPLE] retrieving input friendship records from file
-        String friendshipSamplePath = StormbreakerMain.class.getResource(FRIENDSHIP_DAT_PATH).getPath();
-        DataStream<FriendshipRecord> inputFriendshipStream = env.readFile(
-                new TextInputFormat(new Path(friendshipSamplePath)),
-                friendshipSamplePath
-        ).setParallelism(1).map(new FriendshipReader());
+        //String friendshipSamplePath = StormbreakerMain.class.getResource(FRIENDSHIP_DAT_PATH).getPath();
+        //DataStream<FriendshipRecord> inputFriendshipStream = env.readFile(
+        //        new TextInputFormat(new Path(friendshipSamplePath)),
+        //        friendshipSamplePath
+        //).setParallelism(1).map(new FriendshipReader());
 
         // -> setting parallelism
-        ((SingleOutputStreamOperator<FriendshipRecord>) inputFriendshipStream).setParallelism(1);
+        ((SingleOutputStreamOperator<FriendshipRecord>) friendshipStream).setParallelism(1);
 
         // -> removing relation duplicates (using built-in Flink storage)
-        inputFriendshipStream = inputFriendshipStream.flatMap(new RelationDuplicateFilter());
+        friendshipStream = friendshipStream.flatMap(new RelationDuplicateFilter());
 
         // [24h] -> windowing over a 24h timespan
-        DataStream<FriendshipCount> friendshipDayDataStream = inputFriendshipStream
+        DataStream<FriendshipCount> friendshipDayDataStream = friendshipStream
                         .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
                         .windowAll(TumblingEventTimeWindows.of(Time.hours(24)))
                         .apply(new FriendshipCountApply());
+
+        friendshipDayDataStream.print();
 
         friendshipDayDataStream.addSink(new InfluxDBFriendshipCountSink("friendships_hour"));
 
@@ -71,7 +94,7 @@ public class StormbreakerMain {
                         .apply(new FriendshipCountWeekApply());
 
         // [ENTIRE DATASET] -> windowing over a configurable timespan (in minutes)
-        DataStream<FriendshipCount> friendshipCountDataStream = inputFriendshipStream
+        DataStream<FriendshipCount> friendshipCountDataStream = friendshipStream
                         .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
                         .windowAll(TumblingEventTimeWindows.of(Time.minutes(DATASET_STATS_MINUTES)))
                         .apply(new FriendshipCountApply());
@@ -83,14 +106,12 @@ public class StormbreakerMain {
 
         // --------------------- START QUERY 2 ---------------------
         // [SAMPLE] retrieving input comments records from file
-        String commentsSamplePath = StormbreakerMain.class.getResource(COMMENTS_DAT_PATH).getPath();
-        String postsSamplePath = StormbreakerMain.class.getResource(POSTS_DAT_PATH).getPath();
-
-
-        DataStream<CommentRecord> commentsStream = env.readFile(
-                new TextInputFormat(new Path(commentsSamplePath)),
-                commentsSamplePath
-        ).setParallelism(1).map(new CommentReader());
+        //String commentsSamplePath = StormbreakerMain.class.getResource(COMMENTS_DAT_PATH).getPath();
+        //String postsSamplePath = StormbreakerMain.class.getResource(POSTS_DAT_PATH).getPath();
+        //DataStream<CommentRecord> commentsStream = env.readFile(
+        //        new TextInputFormat(new Path(commentsSamplePath)),
+        //        commentsSamplePath
+        //).setParallelism(1).map(new CommentReader());
 
         // Take only comments of Posts
         DataStream<CommentRecord> commentsToPost = commentsStream.filter(new FilterFunction<CommentRecord>() {
@@ -122,18 +143,18 @@ public class StormbreakerMain {
         // ---------------------- BEGIN QUERY 3 --------------------
 
         // -> retrieving number of relations created by user (<user, relations, timestamp>)
-        DataStream<Tuple3<Long, Integer, Long>> aStream = inputFriendshipStream
+        DataStream<Tuple3<Long, Integer, Long>> aStream = friendshipStream
                     .flatMap(new UserInteractionsFlatMap())
                     .assignTimestampsAndWatermarks(new UserRankWatermarks())
                     .keyBy(0)
                     .window(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
                     .sum(1);
 
-        // -> retrieving posts stream
-        DataStream<PostRecord> postsStream = env.readFile(
-                new TextInputFormat(new Path(postsSamplePath)),
-                postsSamplePath
-        ).setParallelism(1).map(new PostReader());
+        // [SAMPLE] retrieving posts stream
+        // DataStream<PostRecord> postsStream = env.readFile(
+        //        new TextInputFormat(new Path(postsSamplePath)),
+        //                              postsSamplePath
+        //).setParallelism(1).map(new PostReader());
 
         // -> assigning timestamp and watermarks to stream of Posts
         DataStream<PostRecord> postRecordDataStream = postsStream.assignTimestampsAndWatermarks(new PostRecordsWatermarks());
