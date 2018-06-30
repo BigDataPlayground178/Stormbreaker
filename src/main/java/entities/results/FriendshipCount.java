@@ -1,26 +1,34 @@
 package entities.results;
 
-import java.util.Date;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 
 public class FriendshipCount {
 
-    private Date ts;
+    private ZonedDateTime ts;
     private HashMap<String, Long> counters = new HashMap<String, Long>();
 
     public void incrementCounter(String counterID) {
-        counters.put(counterID, counters.getOrDefault(counterID, 0L) + 1);
+        Long value = 1L;
+        if (counters.containsKey(counterID))
+            value = counters.get(counterID) + 1;
+        counters.put(counterID, value);
+        //counters.put(counterID, counters.getOrDefault(counterID, 0L) + 1);
     }
 
-    public void incrementCounter(String counterID, Long value) {
-        counters.put(counterID, counters.getOrDefault(counterID, 0L) + value);
+    public void incrementCounter(String counterID, Long newValue) {
+        Long value = 1L;
+        if (counters.containsKey(counterID))
+            value = counters.get(counterID) + newValue;
+        counters.put(counterID, value);
+        //counters.put(counterID, counters.getOrDefault(counterID, 0L) + value);
     }
 
-    public Date getTs() {
+    public ZonedDateTime getTs() {
         return ts;
     }
 
-    public void setTs(Date ts) {
+    public void setTs(ZonedDateTime ts) {
         this.ts = ts;
     }
 

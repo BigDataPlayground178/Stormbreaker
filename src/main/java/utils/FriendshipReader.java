@@ -15,7 +15,6 @@ public class FriendshipReader implements MapFunction<String, FriendshipRecord> {
         // processing timestamp to return a Date
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSX");
 
-
-        return new FriendshipRecord(ZonedDateTime.parse(r[0], formatter), r[0], Long.valueOf(r[1]), Long.valueOf(r[2]));
+        return new FriendshipRecord(ZonedDateTime.parse(r[0], formatter), Long.valueOf(r[1]), Long.valueOf(r[2]));
     }
 }

@@ -5,13 +5,11 @@ import java.time.ZonedDateTime;
 public class FriendshipRecord {
 
     private ZonedDateTime friendshipDate;
-    private String rawFriendshipDate;
     private Long followingUser;
     private Long followedUser;
 
-    public FriendshipRecord(ZonedDateTime friendshipDate, String rawFriendshipDate, Long followingUser, Long followedUser) {
+    public FriendshipRecord(ZonedDateTime friendshipDate, Long followingUser, Long followedUser) {
         this.friendshipDate = friendshipDate;
-        this.rawFriendshipDate = rawFriendshipDate;
         this.followingUser = followingUser;
         this.followedUser = followedUser;
     }
@@ -25,17 +23,13 @@ public class FriendshipRecord {
         this.friendshipDate = friendshipDate;
     }
 
-    public String getRawFriendshipDate() {
-        return rawFriendshipDate;
-    }
 
     public String getRawHour() {
-        String[] d = getRawFriendshipDate().split("T")[1].split(":");
-        return d[0]; // 00, 01, 02, ... , 22, 23
-    }
-
-    public void setRawFriendshipDate(String rawFriendshipDate) {
-        this.rawFriendshipDate = rawFriendshipDate;
+        String hour = String.valueOf(friendshipDate.getHour());
+        if (hour.length() == 1) {
+            hour = "0" + hour;
+        }
+        return hour;
     }
 
     public Long getFollowingUser() {

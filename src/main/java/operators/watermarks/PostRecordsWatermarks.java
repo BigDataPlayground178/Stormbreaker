@@ -21,5 +21,6 @@ public class PostRecordsWatermarks implements AssignerWithPeriodicWatermarks<Pos
     public long extractTimestamp(PostRecord postRecord, long l) {
         long timestamp = postRecord.getTimestamp().toInstant().toEpochMilli();        // milliseconds
         currentMaxTimestamp = Math.max(currentMaxTimestamp, timestamp);
-        return timestamp;    }
+        return timestamp;
+    }
 }

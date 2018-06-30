@@ -20,7 +20,7 @@ public class FriendshipCountWatermarks implements AssignerWithPeriodicWatermarks
     public long extractTimestamp(FriendshipCount friendshipCount, long l) {
         long timestamp;
         if (friendshipCount.getTs() != null)
-            timestamp = friendshipCount.getTs().getTime();             // milliseconds
+            timestamp = friendshipCount.getTs().toInstant().toEpochMilli();             // milliseconds
         else
             timestamp = currentMaxTimestamp;
         currentMaxTimestamp = Math.max(currentMaxTimestamp, timestamp);

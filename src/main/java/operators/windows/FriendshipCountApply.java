@@ -16,6 +16,7 @@ public class FriendshipCountApply implements AllWindowFunction<FriendshipRecord,
         FriendshipCount fc = new FriendshipCount();
         // iterating over friendship records
         for (FriendshipRecord fr : friendshipRecords) {
+            if (fc.getTs() == null) fc.setTs(fr.getFriendshipDate());
             // retrieving counter identifier
             String counterID = HOUR_COUNTER_PREFIX + fr.getRawHour();
             // updating counter

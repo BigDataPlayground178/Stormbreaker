@@ -2,10 +2,13 @@ import entities.records.CommentRecord;
 import entities.records.FriendshipRecord;
 import entities.records.PostRecord;
 import entities.results.FriendshipCount;
+import entities.results.PostRank;
 import entities.results.UserRank;
 import operators.maps.RelationDuplicateFilter;
 import operators.maps.UserInteractionsFlatMap;
 import operators.selectors.UserKeySelector;
+import operators.sinks.InfluxDBFriendshipCountSink;
+import operators.sinks.InfluxDBPostRankSink;
 import operators.watermarks.*;
 import operators.windows.*;
 import org.apache.flink.api.common.functions.CoGroupFunction;
@@ -36,6 +39,7 @@ public class StormbreakerMain {
 
         // retrieving streaming environment
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        //env.getConfig().setAutoWatermarkInterval(50);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         // --------------------- START QUERY 1 ---------------------
@@ -44,7 +48,7 @@ public class StormbreakerMain {
         DataStream<FriendshipRecord> inputFriendshipStream = env.readFile(
                 new TextInputFormat(new Path(friendshipSamplePath)),
                 friendshipSamplePath
-        ).map(new FriendshipReader());
+        ).setParallelism(1).map(new FriendshipReader());
 
         // -> setting parallelism
         ((SingleOutputStreamOperator<FriendshipRecord>) inputFriendshipStream).setParallelism(1);
@@ -57,6 +61,8 @@ public class StormbreakerMain {
                         .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
                         .windowAll(TumblingEventTimeWindows.of(Time.hours(24)))
                         .apply(new FriendshipCountApply());
+
+        friendshipDayDataStream.addSink(new InfluxDBFriendshipCountSink("friendships_hour"));
 
         // [7d] -> windowing over a 7 X 24h timespan
         DataStream<FriendshipCount> friendshipWeekDataStream = friendshipDayDataStream
@@ -84,7 +90,7 @@ public class StormbreakerMain {
         DataStream<CommentRecord> commentsStream = env.readFile(
                 new TextInputFormat(new Path(commentsSamplePath)),
                 commentsSamplePath
-        ).map(new CommentReader());
+        ).setParallelism(1).map(new CommentReader());
 
         // Take only comments of Posts
         DataStream<CommentRecord> commentsToPost = commentsStream.filter(new FilterFunction<CommentRecord>() {
@@ -96,15 +102,19 @@ public class StormbreakerMain {
 
 
         // group comments for time window (hour, day, week)
-        AllWindowedStream<CommentRecord, TimeWindow> commentsHour = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.hours(1)));
-        AllWindowedStream<CommentRecord, TimeWindow> commentsDay = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.hours(24)));
-        AllWindowedStream<CommentRecord, TimeWindow> commentsWeek = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.days(7)));
+        AllWindowedStream<CommentRecord, TimeWindow> commentsToPostHour = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.hours(1)));
+        AllWindowedStream<CommentRecord, TimeWindow> commentsToPostDay = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.hours(24)));
+        AllWindowedStream<CommentRecord, TimeWindow> commentsToPostWeek = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.days(7)));
 
 
         // compute rank for each window
-        commentsHour.apply(new PostRankApply());
-        commentsDay.apply(new PostRankApply());
-        commentsWeek.apply(new PostRankApply());
+        DataStream<PostRank> postRankHour = commentsToPostHour.apply(new PostRankApply());
+        DataStream<PostRank> postRankDay = commentsToPostDay.apply(new PostRankApply());
+        DataStream<PostRank> postRankWeek = commentsToPostWeek.apply(new PostRankApply());
+
+        postRankHour.addSink(new InfluxDBPostRankSink("postrank_hour"));
+        postRankDay.addSink(new InfluxDBPostRankSink("postrank_day"));
+        postRankWeek.addSink(new InfluxDBPostRankSink("postrank_week"));
 
         // ---------------------- END QUERY 2 ----------------------
 
@@ -123,7 +133,7 @@ public class StormbreakerMain {
         DataStream<PostRecord> postsStream = env.readFile(
                 new TextInputFormat(new Path(postsSamplePath)),
                 postsSamplePath
-        ).map(new PostReader());
+        ).setParallelism(1).map(new PostReader());
 
         // -> assigning timestamp and watermarks to stream of Posts
         DataStream<PostRecord> postRecordDataStream = postsStream.assignTimestampsAndWatermarks(new PostRecordsWatermarks());
