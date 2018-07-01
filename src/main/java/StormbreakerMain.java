@@ -24,7 +24,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer08;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
 import org.apache.flink.util.Collector;
 import utils.CommentReader;
 import utils.FriendshipReader;
@@ -52,15 +52,15 @@ public class StormbreakerMain {
 
         // -> friendships records
         DataStream<FriendshipRecord> friendshipStream = env
-                .addSource(new FlinkKafkaConsumer08<>(KAFKA_FRIENDSHIP_TOPIC, new SimpleStringSchema(), properties))
+                .addSource(new FlinkKafkaConsumer011<>(KAFKA_FRIENDSHIP_TOPIC, new SimpleStringSchema(), properties))
                 .map(new FriendshipReader());
         // -> comments records
         DataStream<CommentRecord> commentsStream = env
-                .addSource(new FlinkKafkaConsumer08<>(KAFKA_COMMENTS_TOPIC, new SimpleStringSchema(), properties))
+                .addSource(new FlinkKafkaConsumer011<>(KAFKA_COMMENTS_TOPIC, new SimpleStringSchema(), properties))
                 .map(new CommentReader());
         // -> posts records
         DataStream<PostRecord> postsStream = env
-                .addSource(new FlinkKafkaConsumer08<>(KAFKA_POSTS_TOPIC, new SimpleStringSchema(), properties))
+                .addSource(new FlinkKafkaConsumer011<>(KAFKA_POSTS_TOPIC, new SimpleStringSchema(), properties))
                 .map(new PostReader());
 
         // --------------------- START QUERY 1 ---------------------
@@ -222,6 +222,8 @@ public class StormbreakerMain {
 
         // ---------------------- END QUERY 3 ----------------------
 
+        // DEBUG: printing execution plan
+        // System.out.println(env.getExecutionPlan());
         // running streaming environment
         env.execute(STORMBREAKER_ENV);
     }
