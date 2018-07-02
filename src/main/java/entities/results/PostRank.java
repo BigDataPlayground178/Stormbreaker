@@ -27,10 +27,14 @@ public class PostRank {
 
     }
 
-    public void printRank() {
-        rank.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(10)
-                .forEach(System.out::println); // or any other terminal method
+    @Override
+    public String toString() {
+        Map<String,Long> toprank = getTopRank();
+        StringBuilder result = new StringBuilder(System.currentTimeMillis() + " , ");
+        for (Map.Entry<String, Long> entry : toprank.entrySet()) {
+            result.append(entry.getKey()).append(" , ").append(entry.getValue()).append(" , ");
+        }
+        result.delete(result.length() - 3, result.length());
+        return result.toString();
     }
 }
