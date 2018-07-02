@@ -135,17 +135,6 @@ public class StormbreakerMain {
 
         // ---------------------- END QUERY 2 ----------------------
 
-
-        // ---------------------- BEGIN QUERY 3 --------------------
-
-        // -> retrieving number of relations created by user (<user, relations, timestamp>)
-        DataStream<Tuple3<Long, Integer, Long>> aStream = friendshipStream
-                    .flatMap(new UserInteractionsFlatMap())
-                    .assignTimestampsAndWatermarks(new UserRankWatermarks())
-                    .keyBy(0)
-                    .window(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
-                    .sum(1);
-
         // [SAMPLE] retrieving posts stream
         // DataStream<PostRecord> postsStream = env.readFile(
         //        new TextInputFormat(new Path(postsSamplePath)),
@@ -155,31 +144,49 @@ public class StormbreakerMain {
         // -> assigning timestamp and watermarks to stream of Posts
         DataStream<PostRecord> postRecordDataStream = postsStream.assignTimestampsAndWatermarks(new PostRecordsWatermarks());
 
+
+        // ---------------------- BEGIN QUERY 3 --------------------
+
+        // [1h] -> retrieving number of relations created by user (<user, relations, timestamp>)
+        DataStream<Tuple3<Long, Integer, Long>> aStreamHour = friendshipStream
+                    .flatMap(new UserInteractionsFlatMap())
+                    .assignTimestampsAndWatermarks(new UserRankWatermarks())
+                    .keyBy(0)
+                    .window(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
+                    .sum(1);
+
         // -> join Comments To Posts and Posts by UserID
         //    group them by time window
         //    count number of comments and number of posts and return a Tuple2<user, numpost + numcomments, timestamp>
-        DataStream<Tuple3<Long, Integer, Long>> bcStream = commentsToPost.coGroup(postRecordDataStream)
+        DataStream<Tuple3<Long, Integer, Long>> bcStreamHour = commentsToPost.coGroup(postRecordDataStream)
                 .where(commentRecord -> commentRecord.getUser_id())
                 .equalTo(postRecord -> postRecord.getUser_id())
-                .window(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
+                .window(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
                 .apply(new bcRankCoGroup());
-
-
-
         // adding watermark
-        bcStream = bcStream.assignTimestampsAndWatermarks(new UserRankWatermarks());
+        bcStreamHour = bcStreamHour.assignTimestampsAndWatermarks(new UserRankWatermarks());
 
         // -> finally merging the two streams to compute user stats for ranking
-        DataStream<Tuple3<Long, Integer, Long>> userRankStream = aStream.join(bcStream)
+        DataStream<Tuple3<Long, Integer, Long>> userRankStreamHour = aStreamHour.join(bcStreamHour)
                 .where(new UserKeySelector()).equalTo(new UserKeySelector())
-                .window(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
+                .window(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
                 .apply(new UserRankJoin());
+        // adding watermark
+        userRankStreamHour = userRankStreamHour.assignTimestampsAndWatermarks(new UserRankWatermarks());
 
-        userRankStream = userRankStream.assignTimestampsAndWatermarks(new UserRankWatermarks());
+        // [1h] -> retrieving first N users to build the ranking
+        DataStream<UserRank> userRankHour = userRankStreamHour
+                .windowAll(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
+                .apply(new UserRanking());
 
-        // -> retrieving first N users to build the ranking
-        DataStream<UserRank> userRank = userRankStream
-                .windowAll(TumblingEventTimeWindows.of(Time.minutes(USERS_RANKING_MINUTES)))
+        // [24h] -> retrieving first N users to build the ranking
+        DataStream<UserRank> userRankDay = userRankStreamHour
+                .windowAll(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_DAY_HOUR)))
+                .apply(new UserRanking());
+
+        // [7d] -> retrieving first N users to build the ranking
+        DataStream<UserRank> userRankWeek = userRankStreamHour
+                .windowAll(TumblingEventTimeWindows.of(Time.days(USERS_RANKING_WEEK_DAY)))
                 .apply(new UserRanking());
 
 

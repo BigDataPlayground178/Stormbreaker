@@ -38,7 +38,12 @@ public class UserRanking implements AllWindowFunction<Tuple3<Long, Integer, Long
 
         // iterating over collection
         int i = 0;
+        Long ts = 0L;
         for (Tuple3<Long, Integer, Long> record : collection) {
+            // retrieving first timestamp
+            if (i == 0)
+                ts = record.f2;
+            // updating users array
             users[i] = new User(record.f0, record.f1);
             i++;
         }
@@ -48,6 +53,7 @@ public class UserRanking implements AllWindowFunction<Tuple3<Long, Integer, Long
 
         // creating rank object
         UserRank rank = new UserRank();
+        rank.setTs(ts);
 
         // setting rank attributes
         for (User user : users) {

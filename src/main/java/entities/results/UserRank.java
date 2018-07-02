@@ -7,6 +7,7 @@ import java.util.ArrayList;
 public class UserRank {
 
     public Integer count = 0;
+    public Long ts;
     public ArrayList<Tuple2<Long, Integer>> users;
 
     public UserRank() {
@@ -19,5 +20,13 @@ public class UserRank {
 
     public void addUser(Tuple2<Long, Integer> user) {
         users.add(user);
+    }
+
+    public void setTs(Long ts) {
+        this.ts = ts;
+    }
+
+    public Long getTs() {
+        return this.ts;
     }
 }
