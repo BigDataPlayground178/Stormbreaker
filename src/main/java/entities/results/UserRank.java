@@ -29,4 +29,15 @@ public class UserRank {
     public Long getTs() {
         return this.ts;
     }
+
+
+    public String toString() {
+        StringBuilder result = new StringBuilder(ts + " , ");
+        for (Tuple2<Long, Integer> user : users) {
+            result.append(user.f0).append(", ").append(user.f1).append(", ");
+        }
+        result.delete(result.length() - 3, result.length());
+        return result.toString();
+    }
+
 }

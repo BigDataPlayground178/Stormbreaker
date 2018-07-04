@@ -39,4 +39,13 @@ public class FriendshipCount {
     public void setCounters(HashMap<String, Long> counters) {
         this.counters = counters;
     }
+
+    public String toString() {
+        StringBuilder stamp = new StringBuilder(String.valueOf(getTs().toInstant().toEpochMilli()) + " , ");
+        for (HashMap.Entry<String, Long> entry : counters.entrySet()) {
+            stamp.append(entry.getKey()).append(" , ").append(entry.getValue()).append(" , ");
+        }
+        stamp.delete(stamp.length() - 3, stamp.length());
+        return stamp.toString();
+    }
 }

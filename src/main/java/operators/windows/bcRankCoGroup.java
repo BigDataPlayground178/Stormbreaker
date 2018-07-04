@@ -11,7 +11,7 @@ public class bcRankCoGroup implements CoGroupFunction<CommentRecord, PostRecord,
     public void coGroup(Iterable<CommentRecord> comments, Iterable<PostRecord> posts, Collector<Tuple3<Long, Integer, Long>> collector) throws Exception {
         int numCom = 0;
         int numPost = 0;
-        long timestamp = 0;
+        long timestamp = Long.MAX_VALUE;
         Long userID = null;
 
         // if the user made comments
@@ -19,7 +19,7 @@ public class bcRankCoGroup implements CoGroupFunction<CommentRecord, PostRecord,
             for (CommentRecord cr : comments) {
                 userID = cr.getUser_id();
                 numCom++;
-                if (cr.getTimestamp().toInstant().toEpochMilli() >= timestamp)
+                if (cr.getTimestamp().toInstant().toEpochMilli() <= timestamp)
                     timestamp = cr.getTimestamp().toInstant().toEpochMilli();
             }
         }
@@ -29,7 +29,7 @@ public class bcRankCoGroup implements CoGroupFunction<CommentRecord, PostRecord,
             for (PostRecord pr : posts) {
                 userID = pr.getUser_id();
                 numPost++;
-                if (pr.getTimestamp().toInstant().toEpochMilli() >= timestamp)
+                if (pr.getTimestamp().toInstant().toEpochMilli() <= timestamp)
                     timestamp = pr.getTimestamp().toInstant().toEpochMilli();
             }
         }

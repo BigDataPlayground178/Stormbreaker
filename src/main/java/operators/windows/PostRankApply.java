@@ -13,6 +13,9 @@ public class PostRankApply implements AllWindowFunction<CommentRecord, PostRank,
 
         for (CommentRecord cr : iterable) {
             pr.addNewValue(cr.getPost_commented());
+            if (cr.getTimestamp().toInstant().toEpochMilli() < pr.getTS()) {
+                pr.setTs(cr.getTimestamp().toInstant().toEpochMilli());
+            }
         }
 
         collector.collect(pr);

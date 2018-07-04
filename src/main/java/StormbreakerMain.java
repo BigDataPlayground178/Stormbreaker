@@ -4,6 +4,7 @@ import entities.records.PostRecord;
 import entities.results.FriendshipCount;
 import entities.results.PostRank;
 import entities.results.UserRank;
+import operators.maps.FriendshipCountTp;
 import operators.maps.RelationDuplicateFilter;
 import operators.maps.UserInteractionsFlatMap;
 import operators.selectors.UserKeySelector;
@@ -36,7 +37,9 @@ public class StormbreakerMain {
 
         // retrieving streaming environment
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        //env.getConfig().setAutoWatermarkInterval(50);
+        //env.getConfig().setAutoWatermarkInterval(10);
+        env.getConfig().setLatencyTrackingInterval(50);
+        //env.setParallelism(3);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
         // -------------------- SOURCE STREAMS ---------------------
@@ -44,6 +47,7 @@ public class StormbreakerMain {
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", KAFKA_BOOTSTRAP_SERVER);
         properties.setProperty("zookeeper.connect", KAFKA_ZOOKEEPER_SERVER);
+
 
         // -> friendships records
         DataStream<FriendshipRecord> friendshipStream = env
@@ -58,13 +62,17 @@ public class StormbreakerMain {
                 .addSource(new FlinkKafkaConsumer011<>(KAFKA_POSTS_TOPIC, new SimpleStringSchema(), properties))
                 .map(new PostReader());
 
+
+
         // --------------------- START QUERY 1 ---------------------
         // [SAMPLE] retrieving input friendship records from file
-        //String friendshipSamplePath = StormbreakerMain.class.getResource(FRIENDSHIP_DAT_PATH).getPath();
-        //DataStream<FriendshipRecord> inputFriendshipStream = env.readFile(
-        //        new TextInputFormat(new Path(friendshipSamplePath)),
-        //        friendshipSamplePath
-        //).setParallelism(1).map(new FriendshipReader());
+        /*
+        String friendshipSamplePath = StormbreakerMain.class.getResource(FRIENDSHIP_DAT_PATH).getPath();
+        DataStream<FriendshipRecord> friendshipStream = env.readFile(
+                new TextInputFormat(new Path(friendshipSamplePath)),
+                friendshipSamplePath
+        ).setParallelism(1).map(new FriendshipReader());
+        */
 
         // -> setting parallelism
         ((SingleOutputStreamOperator<FriendshipRecord>) friendshipStream).setParallelism(1);
@@ -78,7 +86,7 @@ public class StormbreakerMain {
                 .windowAll(TumblingEventTimeWindows.of(Time.hours(24)))
                 .apply(new FriendshipCountApply());
 
-        //friendshipDayDataStream.print();
+        friendshipDayDataStream.map(new FriendshipCountTp("tpQuery1Hour"));
 
         //friendshipDayDataStream.addSink(new InfluxDBFriendshipCountSink("friendships_hour"));
 
@@ -88,11 +96,17 @@ public class StormbreakerMain {
                 .windowAll(TumblingEventTimeWindows.of(Time.days(7)))
                 .apply(new FriendshipCountWeekApply());
 
+        friendshipWeekDataStream.map(new FriendshipCountTp("tpQuery1Week"));
+
+
         // [ENTIRE DATASET] -> windowing over a configurable timespan (in minutes)
         DataStream<FriendshipCount> friendshipCountDataStream = friendshipStream
                 .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
                 .windowAll(TumblingEventTimeWindows.of(Time.minutes(DATASET_STATS_MINUTES)))
                 .apply(new FriendshipCountApply());
+
+        friendshipCountDataStream.map(new FriendshipCountTp("tpQuery1All"));
+
 
 
         // ---------------------- END QUERY 1 ----------------------
@@ -100,12 +114,16 @@ public class StormbreakerMain {
 
         // --------------------- START QUERY 2 ---------------------
         // [SAMPLE] retrieving input comments records from file
-        //String commentsSamplePath = StormbreakerMain.class.getResource(COMMENTS_DAT_PATH).getPath();
-        //String postsSamplePath = StormbreakerMain.class.getResource(POSTS_DAT_PATH).getPath();
-        //DataStream<CommentRecord> commentsStream = env.readFile(
-        //        new TextInputFormat(new Path(commentsSamplePath)),
-        //        commentsSamplePath
-        //).setParallelism(1).map(new CommentReader());
+        /*
+        String commentsSamplePath = StormbreakerMain.class.getResource(COMMENTS_DAT_PATH).getPath();
+        String postsSamplePath = StormbreakerMain.class.getResource(POSTS_DAT_PATH).getPath();
+        DataStream<CommentRecord> commentsStream = env.readFile(
+                new TextInputFormat(new Path(commentsSamplePath)),
+                commentsSamplePath
+        ).setParallelism(1).map(new CommentReader());
+        */
+
+        commentsStream = commentsStream.assignTimestampsAndWatermarks(new CommentRecordsWatermarks());
 
         // Take only comments of Posts
         DataStream<CommentRecord> commentsToPost = commentsStream.filter(new FilterFunction<CommentRecord>() {
@@ -113,7 +131,7 @@ public class StormbreakerMain {
             public boolean filter(CommentRecord comment) throws Exception {
                 return comment.isCommentToPost();
             }
-        }).assignTimestampsAndWatermarks(new CommentRecordsWatermarks());
+        });//.assignTimestampsAndWatermarks(new CommentRecordsWatermarks());
 
 
         // group comments for time window (hour, day, week)
@@ -127,7 +145,6 @@ public class StormbreakerMain {
         DataStream<PostRank> postRankDay = commentsToPostDay.apply(new PostRankApply());
         DataStream<PostRank> postRankWeek = commentsToPostWeek.apply(new PostRankApply());
 
-        //postRankHour.print();
 
         //postRankHour.addSink(new InfluxDBPostRankSink("postrank_hour"));
         //postRankDay.addSink(new InfluxDBPostRankSink("postrank_day"));
@@ -158,26 +175,29 @@ public class StormbreakerMain {
         // -> join Comments To Posts and Posts by UserID
         //    group them by time window
         //    count number of comments and number of posts and return a Tuple2<user, numpost + numcomments, timestamp>
-        DataStream<Tuple3<Long, Integer, Long>> bcStreamHour = commentsToPost.coGroup(postRecordDataStream)
+        DataStream<Tuple3<Long, Integer, Long>> bcStreamHour = commentsStream.coGroup(postRecordDataStream)
                 .where(commentRecord -> commentRecord.getUser_id())
                 .equalTo(postRecord -> postRecord.getUser_id())
                 .window(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
                 .apply(new bcRankCoGroup());
+
         // adding watermark
-        bcStreamHour = bcStreamHour.assignTimestampsAndWatermarks(new UserRankWatermarks());
+        //bcStreamHour = bcStreamHour.assignTimestampsAndWatermarks(new UserRankWatermarks());
 
         // -> finally merging the two streams to compute user stats for ranking
-        DataStream<Tuple3<Long, Integer, Long>> userRankStreamHour = aStreamHour.join(bcStreamHour)
+        DataStream<Tuple3<Long, Integer, Long>> userRankStreamHour = aStreamHour.coGroup(bcStreamHour)
                 .where(new UserKeySelector()).equalTo(new UserKeySelector())
                 .window(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
                 .apply(new UserRankJoin());
+
         // adding watermark
-        userRankStreamHour = userRankStreamHour.assignTimestampsAndWatermarks(new UserRankWatermarks());
+        //userRankStreamHour = userRankStreamHour.assignTimestampsAndWatermarks(new UserRankWatermarks());
 
         // [1h] -> retrieving first N users to build the ranking
         DataStream<UserRank> userRankHour = userRankStreamHour
                 .windowAll(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
                 .apply(new UserRanking());
+
 
         // [24h] -> retrieving first N users to build the ranking
         DataStream<UserRank> userRankDay = userRankStreamHour
