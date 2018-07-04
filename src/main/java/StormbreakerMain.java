@@ -4,7 +4,6 @@ import entities.records.PostRecord;
 import entities.results.FriendshipCount;
 import entities.results.PostRank;
 import entities.results.UserRank;
-import operators.maps.FriendshipCountTp;
 import operators.maps.RelationDuplicateFilter;
 import operators.maps.UserInteractionsFlatMap;
 import operators.selectors.UserKeySelector;
@@ -52,15 +51,15 @@ public class StormbreakerMain {
         // -> friendships records
         DataStream<FriendshipRecord> friendshipStream = env
                 .addSource(new FlinkKafkaConsumer011<>(KAFKA_FRIENDSHIP_TOPIC, new SimpleStringSchema(), properties))
-                .map(new FriendshipReader());
+                .map(new FriendshipReader()).name("friendshipStreamFromKafka");
         // -> comments records
         DataStream<CommentRecord> commentsStream = env
                 .addSource(new FlinkKafkaConsumer011<>(KAFKA_COMMENTS_TOPIC, new SimpleStringSchema(), properties))
-                .map(new CommentReader());
+                .map(new CommentReader()).name("commentsStreamFromKafka");
         // -> posts records
         DataStream<PostRecord> postsStream = env
                 .addSource(new FlinkKafkaConsumer011<>(KAFKA_POSTS_TOPIC, new SimpleStringSchema(), properties))
-                .map(new PostReader());
+                .map(new PostReader()).name("postsStreamFromKafka");
 
 
 
@@ -78,15 +77,15 @@ public class StormbreakerMain {
         ((SingleOutputStreamOperator<FriendshipRecord>) friendshipStream).setParallelism(1);
 
         // -> removing relation duplicates (using built-in Flink storage)
-        friendshipStream = friendshipStream.flatMap(new RelationDuplicateFilter());
+        friendshipStream = friendshipStream.flatMap(new RelationDuplicateFilter()).uid("rimozioneDuplicati");
 
         // [24h] -> windowing over a 24h timespan
         DataStream<FriendshipCount> friendshipDayDataStream = friendshipStream
-                .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
+                .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks()).uid("assegnaTimestamp")
                 .windowAll(TumblingEventTimeWindows.of(Time.hours(24)))
-                .apply(new FriendshipCountApply());
+                .apply(new FriendshipCountApply()).uid("faApply").name("FriendshipCount24hours");
 
-        friendshipDayDataStream.map(new FriendshipCountTp("tpQuery1Hour"));
+        //friendshipDayDataStream.map(new FriendshipCountTp("tpQuery1Hour"));
 
         //friendshipDayDataStream.addSink(new InfluxDBFriendshipCountSink("friendships_hour"));
 
@@ -94,18 +93,18 @@ public class StormbreakerMain {
         DataStream<FriendshipCount> friendshipWeekDataStream = friendshipDayDataStream
                 .assignTimestampsAndWatermarks(new FriendshipCountWatermarks())
                 .windowAll(TumblingEventTimeWindows.of(Time.days(7)))
-                .apply(new FriendshipCountWeekApply());
+                .apply(new FriendshipCountWeekApply()).name("FriendshipCount7Days");
 
-        friendshipWeekDataStream.map(new FriendshipCountTp("tpQuery1Week"));
+        //friendshipWeekDataStream.map(new FriendshipCountTp("tpQuery1Week"));
 
 
         // [ENTIRE DATASET] -> windowing over a configurable timespan (in minutes)
         DataStream<FriendshipCount> friendshipCountDataStream = friendshipStream
                 .assignTimestampsAndWatermarks(new FriendshipRecordsWatermarks())
                 .windowAll(TumblingEventTimeWindows.of(Time.minutes(DATASET_STATS_MINUTES)))
-                .apply(new FriendshipCountApply());
+                .apply(new FriendshipCountApply()).name("FriendshipCount60Minutes");
 
-        friendshipCountDataStream.map(new FriendshipCountTp("tpQuery1All"));
+        //friendshipCountDataStream.map(new FriendshipCountTp("tpQuery1All"));
 
 
 

@@ -20,6 +20,7 @@ public class InfluxDBFriendshipCountSink extends RichSinkFunction<FriendshipCoun
     }
 
 
+
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);

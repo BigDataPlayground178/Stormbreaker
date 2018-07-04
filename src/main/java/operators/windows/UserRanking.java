@@ -1,23 +1,17 @@
 package operators.windows;
 
 import entities.results.UserRank;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
-import org.apache.flink.shaded.curator.org.apache.curator.shaded.com.google.common.collect.Iterables;
 import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
-
-import java.util.Arrays;
-
-import static utils.StormbreakerConstants.USERS_RANKING_MAX;
 
 public class UserRanking implements AllWindowFunction<Tuple3<Long, Integer, Long>, UserRank, TimeWindow> {
 
     @Override
     public void apply(TimeWindow timeWindow, Iterable<Tuple3<Long, Integer, Long>> collection, Collector<UserRank> out) throws Exception {
 
-        // using aux class
+        /*// using aux class
         class User implements Comparable<User> {
             final Integer score;
             final Long userID;
@@ -63,6 +57,17 @@ public class UserRanking implements AllWindowFunction<Tuple3<Long, Integer, Long
                 break;
         }
 
-        out.collect(rank);
+        out.collect(rank);*/
+
+        UserRank ur = new UserRank();
+
+        for (Tuple3<Long, Integer, Long> user : collection) {
+            ur.addUser(user);
+            if (user.f2 < ur.getTs()) {
+                ur.setTs(user.f2);
+            }
+        }
+
+        out.collect(ur);
     }
 }

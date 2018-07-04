@@ -25,7 +25,7 @@ public class FriendshipCountTp extends RichMapFunction<FriendshipCount, Object> 
     @Override
     public Object map(FriendshipCount friendshipCount) throws Exception {
         this.meter.markEvent();
-        //System.out.println(metername + " rate: " + meter.getRate());
+        System.out.println(metername + " rate: " + meter.getRate());
         return friendshipCount;
     }
 }
