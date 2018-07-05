@@ -17,8 +17,11 @@ public class bcRankCoGroup implements CoGroupFunction<CommentRecord, PostRecord,
         // if the user made comments
         if (comments != null) {
             for (CommentRecord cr : comments) {
+                // userIDs should all be the same
                 userID = cr.getUser_id();
+                // increment number of comments
                 numCom++;
+                // set Tuple timestamp as the lowest record timestamp
                 if (cr.getTimestamp().toInstant().toEpochMilli() <= timestamp)
                     timestamp = cr.getTimestamp().toInstant().toEpochMilli();
             }
@@ -27,8 +30,11 @@ public class bcRankCoGroup implements CoGroupFunction<CommentRecord, PostRecord,
         // if the user made posts
         if (posts != null) {
             for (PostRecord pr : posts) {
+                // userIDs should all be the same
                 userID = pr.getUser_id();
+                // increment number of posts
                 numPost++;
+                // set Tuple timestamp as the lowest record timestamp
                 if (pr.getTimestamp().toInstant().toEpochMilli() <= timestamp)
                     timestamp = pr.getTimestamp().toInstant().toEpochMilli();
             }

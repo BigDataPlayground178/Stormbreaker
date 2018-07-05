@@ -13,18 +13,26 @@ public class UserRankJoin implements CoGroupFunction<Tuple3<Long, Integer, Long>
         Long timestamp = Long.MAX_VALUE;
         Integer score  = 0;
 
+        // if there are "aTuples" (there should be 0 or 1)
         if (aTuples != null) {
             for (Tuple3<Long, Integer, Long> t : aTuples) {
+                // set the userID of "abcTuple" as the userID of the "aTuple"
                 userID = t.f0;
+                // set the "abcTuple" timestamp as the lowest recorded timestamp from all tuples
                 if (t.f2 < timestamp) { timestamp = t.f2; }
+                // update the score
                 score += t.f1;
             }
         }
 
+        // if there are "bcTuples" (there should be 0 or 1)
         if (bcTuples != null) {
             for (Tuple3<Long, Integer, Long> t : bcTuples) {
+                // set the userID of "abcTuple" as the userID of the "bcTuple"
                 userID = t.f0;
+                // set the "abcTuple" timestamp as the lowest recorded timestamp from all tuples
                 if (t.f2 < timestamp) { timestamp = t.f2; }
+                // update the score
                 score += t.f1;
             }
         }

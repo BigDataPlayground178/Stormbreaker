@@ -1,6 +1,6 @@
 package operators.sinks;
 
-import entities.results.PostRank;
+import entities.results.UserRank;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
@@ -13,10 +13,11 @@ import java.util.concurrent.TimeUnit;
 import static utils.StormbreakerConstants.INFLUX_DB_HOST;
 import static utils.StormbreakerConstants.INFLUX_DB_PORT;
 
+
 /**
- * Sink Class that allows the injection of PostRank objects in InfluxDB
+ * Sink Class that allows the injection of UserRank objects in InfluxDB
  */
-public class InfluxDBPostRankSink extends RichSinkFunction<PostRank> {
+public class InfluxDBUserRankSink extends RichSinkFunction<UserRank> {
 
     private transient InfluxDB influxDB;
 
@@ -25,7 +26,7 @@ public class InfluxDBPostRankSink extends RichSinkFunction<PostRank> {
     /**
      * @param series_name name of the timeseries in InfluxDB
      */
-    public InfluxDBPostRankSink(String series_name) {
+    public InfluxDBUserRankSink(String series_name) {
         this.series_name = series_name;
     }
 
@@ -38,9 +39,9 @@ public class InfluxDBPostRankSink extends RichSinkFunction<PostRank> {
     }
 
     @Override
-    public void invoke(PostRank value, SinkFunction.Context context) {
+    public void invoke(UserRank value, SinkFunction.Context context) {
         influxDB.write(Point.measurement(series_name)
-                .time(value.getTS(), TimeUnit.MILLISECONDS)
+                .time(value.getTs(), TimeUnit.MILLISECONDS)
                 .addField("rank", value.getTopRank().toString())
                 .build());
     }

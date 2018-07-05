@@ -10,11 +10,20 @@ import org.influxdb.dto.Point;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static utils.StormbreakerConstants.INFLUX_DB_HOST;
+import static utils.StormbreakerConstants.INFLUX_DB_PORT;
+
+/**
+ * Sink Class that allows the injection of FriendshipCount objects in InfluxDB
+ */
 public class InfluxDBFriendshipCountSink extends RichSinkFunction<FriendshipCount> {
 
     private transient InfluxDB influxDB;
     private String series_name;
 
+    /**
+     * @param series_name name of the timeseries in InfluxDB
+     */
     public InfluxDBFriendshipCountSink(String series_name) {
         this.series_name = series_name;
     }
@@ -24,7 +33,7 @@ public class InfluxDBFriendshipCountSink extends RichSinkFunction<FriendshipCoun
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        InfluxDB influxDB = InfluxDBFactory.connect("http://127.0.0.1:8086");
+        InfluxDB influxDB = InfluxDBFactory.connect("http://" + INFLUX_DB_HOST + ":" + INFLUX_DB_PORT);
         influxDB.setDatabase("mydb");
         this.influxDB = influxDB;
     }

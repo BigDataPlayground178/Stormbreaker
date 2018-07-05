@@ -7,6 +7,9 @@ import entities.results.UserRank;
 import operators.maps.RelationDuplicateFilter;
 import operators.maps.UserInteractionsFlatMap;
 import operators.selectors.UserKeySelector;
+import operators.sinks.InfluxDBFriendshipCountSink;
+import operators.sinks.InfluxDBPostRankSink;
+import operators.sinks.InfluxDBUserRankSink;
 import operators.watermarks.*;
 import operators.windows.*;
 import org.apache.flink.api.common.functions.FilterFunction;
@@ -36,7 +39,6 @@ public class StormbreakerMain {
 
         // retrieving streaming environment
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        //env.getConfig().setAutoWatermarkInterval(10);
         env.getConfig().setLatencyTrackingInterval(50);
         //env.setParallelism(3);
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
@@ -87,7 +89,8 @@ public class StormbreakerMain {
 
         //friendshipDayDataStream.map(new FriendshipCountTp("tpQuery1Hour"));
 
-        //friendshipDayDataStream.addSink(new InfluxDBFriendshipCountSink("friendships_hour"));
+        // [24 h] -> sink to InfluxDB
+        friendshipDayDataStream.addSink(new InfluxDBFriendshipCountSink("friendships_day"));
 
         // [7d] -> windowing over a 7 X 24h timespan
         DataStream<FriendshipCount> friendshipWeekDataStream = friendshipDayDataStream
@@ -97,6 +100,8 @@ public class StormbreakerMain {
 
         //friendshipWeekDataStream.map(new FriendshipCountTp("tpQuery1Week"));
 
+        // [7d] -> sink to InfluxDB
+        friendshipWeekDataStream.addSink(new InfluxDBFriendshipCountSink("friendships_week"));
 
         // [ENTIRE DATASET] -> windowing over a configurable timespan (in minutes)
         DataStream<FriendshipCount> friendshipCountDataStream = friendshipStream
@@ -105,7 +110,8 @@ public class StormbreakerMain {
                 .apply(new FriendshipCountApply()).name("FriendshipCount60Minutes");
 
         //friendshipCountDataStream.map(new FriendshipCountTp("tpQuery1All"));
-
+        // [ENTIRE DATASET] -> sink to InfluxDB
+        friendshipCountDataStream.addSink(new InfluxDBFriendshipCountSink("friendships_all"));
 
 
         // ---------------------- END QUERY 1 ----------------------
@@ -122,32 +128,34 @@ public class StormbreakerMain {
         ).setParallelism(1).map(new CommentReader());
         */
 
+        // -> Assign timestamps and Watermarks to stream of Comments
         commentsStream = commentsStream.assignTimestampsAndWatermarks(new CommentRecordsWatermarks());
 
-        // Take only comments of Posts
+        // -> Take only comments to Posts
         DataStream<CommentRecord> commentsToPost = commentsStream.filter(new FilterFunction<CommentRecord>() {
             @Override
             public boolean filter(CommentRecord comment) throws Exception {
                 return comment.isCommentToPost();
             }
-        });//.assignTimestampsAndWatermarks(new CommentRecordsWatermarks());
+        });
 
 
-        // group comments for time window (hour, day, week)
+        // -> group comments for time window (hour, day, week)
         AllWindowedStream<CommentRecord, TimeWindow> commentsToPostHour = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.hours(1)));
         AllWindowedStream<CommentRecord, TimeWindow> commentsToPostDay = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.hours(24)));
         AllWindowedStream<CommentRecord, TimeWindow> commentsToPostWeek = commentsToPost.windowAll(TumblingEventTimeWindows.of(Time.days(7)));
 
 
-        // compute rank for each window
+        // -> compute rank for each window
         DataStream<PostRank> postRankHour = commentsToPostHour.apply(new PostRankApply());
         DataStream<PostRank> postRankDay = commentsToPostDay.apply(new PostRankApply());
         DataStream<PostRank> postRankWeek = commentsToPostWeek.apply(new PostRankApply());
 
 
-        //postRankHour.addSink(new InfluxDBPostRankSink("postrank_hour"));
-        //postRankDay.addSink(new InfluxDBPostRankSink("postrank_day"));
-        //postRankWeek.addSink(new InfluxDBPostRankSink("postrank_week"));
+        // -> sink ranks to InfluxDB
+        postRankHour.addSink(new InfluxDBPostRankSink("postrank_hour"));
+        postRankDay.addSink(new InfluxDBPostRankSink("postrank_day"));
+        postRankWeek.addSink(new InfluxDBPostRankSink("postrank_week"));
 
         // ---------------------- END QUERY 2 ----------------------
 
@@ -180,8 +188,6 @@ public class StormbreakerMain {
                 .window(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
                 .apply(new bcRankCoGroup());
 
-        // adding watermark
-        //bcStreamHour = bcStreamHour.assignTimestampsAndWatermarks(new UserRankWatermarks());
 
         // -> finally merging the two streams to compute user stats for ranking
         DataStream<Tuple3<Long, Integer, Long>> userRankStreamHour = aStreamHour.coGroup(bcStreamHour)
@@ -189,13 +195,13 @@ public class StormbreakerMain {
                 .window(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
                 .apply(new UserRankJoin());
 
-        // adding watermark
-        //userRankStreamHour = userRankStreamHour.assignTimestampsAndWatermarks(new UserRankWatermarks());
-
         // [1h] -> retrieving first N users to build the ranking
         DataStream<UserRank> userRankHour = userRankStreamHour
                 .windowAll(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_HOUR)))
                 .apply(new UserRanking());
+
+        // [1h] -> sink ranks to InfluxDB
+        userRankHour.addSink(new InfluxDBUserRankSink("userrank_hour"));
 
 
         // [24h] -> retrieving first N users to build the ranking
@@ -203,10 +209,18 @@ public class StormbreakerMain {
                 .windowAll(TumblingEventTimeWindows.of(Time.hours(USERS_RANKING_DAY_HOUR)))
                 .apply(new UserRanking());
 
-        // [7d] -> retrieving first N users to build the ranking
+        // [24h] -> sink rank to InfluxDB
+        userRankHour.addSink(new InfluxDBUserRankSink("userrank_day"));
+
+
+        // [7d] -> sink ranks to InfluxDB
         DataStream<UserRank> userRankWeek = userRankStreamHour
                 .windowAll(TumblingEventTimeWindows.of(Time.days(USERS_RANKING_WEEK_DAY)))
                 .apply(new UserRanking());
+
+        // [7d] -> retrieving first N users to build the ranking
+        userRankHour.addSink(new InfluxDBUserRankSink("userrank_week"));
+
 
 
         // ---------------------- END QUERY 3 ----------------------
