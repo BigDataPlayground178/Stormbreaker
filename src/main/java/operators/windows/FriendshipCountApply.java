@@ -8,6 +8,10 @@ import org.apache.flink.util.Collector;
 
 import static utils.StormbreakerConstants.HOUR_COUNTER_PREFIX;
 
+/**
+ * This class is an extension of an AllWindowFunction to apply the sum of the friendship
+ * interactions in a given window
+ */
 public class FriendshipCountApply implements AllWindowFunction<FriendshipRecord, FriendshipCount, TimeWindow> {
 
     @Override

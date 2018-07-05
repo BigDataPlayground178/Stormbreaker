@@ -8,6 +8,10 @@ import org.apache.flink.util.Collector;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * This class is an extension of an AllWindowFunction to apply the sum of the friendship
+ * interactions in a given window (of a week) - handling counters update accordingly previous aggregations
+ */
 public class FriendshipCountWeekApply implements AllWindowFunction<FriendshipCount, FriendshipCount, TimeWindow> {
 
     @Override

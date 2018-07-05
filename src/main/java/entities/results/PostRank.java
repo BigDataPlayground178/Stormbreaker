@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import static utils.StormbreakerConstants.POST_RANKING_MAX;
+
 /**
  * Class for Post ranking by comments
  */
@@ -34,7 +36,7 @@ public class PostRank {
     public Map<String, Long> getTopRank() {
         return rank.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(10)
+                .limit(POST_RANKING_MAX)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
     }
 

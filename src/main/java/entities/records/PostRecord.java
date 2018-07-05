@@ -2,6 +2,9 @@ package entities.records;
 
 import java.time.ZonedDateTime;
 
+/**
+ * This is the utility class to retrieve post records
+ */
 public class PostRecord {
     private ZonedDateTime timestamp;
     private Long post_id;

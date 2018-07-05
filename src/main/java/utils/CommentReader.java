@@ -6,6 +6,9 @@ import org.apache.flink.api.common.functions.MapFunction;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * This class can be used to map raw strings into CommentRecords
+ */
 public class CommentReader implements MapFunction<String, CommentRecord> {
     @Override
     public CommentRecord map(String s) throws Exception {

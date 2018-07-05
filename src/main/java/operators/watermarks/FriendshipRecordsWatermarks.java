@@ -6,6 +6,9 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 
 import javax.annotation.Nullable;
 
+/**
+ * This class can be used to extract watermarks from friendship records
+ */
 public class FriendshipRecordsWatermarks implements AssignerWithPeriodicWatermarks<FriendshipRecord> {
 
     private long currentMaxTimestamp;

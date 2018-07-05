@@ -6,6 +6,9 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.dropwizard.metrics.DropwizardMeterWrapper;
 import org.apache.flink.metrics.Meter;
 
+/**
+ * Utility class to handle metrics over friendship stream
+ */
 public class FriendshipCountTp extends RichMapFunction<FriendshipCount, Object> {
     private transient Meter meter;
     private String metername;

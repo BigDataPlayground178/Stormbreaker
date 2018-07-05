@@ -6,6 +6,9 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 
 import static utils.StormbreakerConstants.DATASET_START_TIMESTAMP;
 
+/**
+ * This class can be used to extract watermarks from user rank tuples
+ */
 public class UserRankWatermarks implements AssignerWithPeriodicWatermarks<Tuple3<Long, Integer, Long>> {
 
     private long currentMaxTimestamp = DATASET_START_TIMESTAMP;

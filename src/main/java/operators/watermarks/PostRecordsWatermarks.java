@@ -6,6 +6,9 @@ import org.apache.flink.streaming.api.watermark.Watermark;
 
 import javax.annotation.Nullable;
 
+/**
+ * This class can be used to extract watermarks from post records
+ */
 public class PostRecordsWatermarks implements AssignerWithPeriodicWatermarks<PostRecord> {
 
     private long currentMaxTimestamp;

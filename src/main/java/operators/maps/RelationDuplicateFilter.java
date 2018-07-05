@@ -11,6 +11,10 @@ import org.apache.flink.util.Collector;
 
 import java.util.stream.StreamSupport;
 
+/**
+ * This class is an extension of a RichFlatMap that leverages upon the use of operator states
+ * in order to remove duplicates from a friendship stream
+ */
 public class RelationDuplicateFilter extends RichFlatMapFunction<FriendshipRecord, FriendshipRecord> implements CheckpointedFunction {
 
     private ListState<String> relationsList;

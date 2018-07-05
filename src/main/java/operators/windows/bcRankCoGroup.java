@@ -6,6 +6,9 @@ import org.apache.flink.api.common.functions.CoGroupFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 
+/**
+ * This class extends the CoGroupFunction to retrieve the "bc" score of user interactions
+ */
 public class bcRankCoGroup implements CoGroupFunction<CommentRecord, PostRecord, Tuple3<Long, Integer, Long>> {
     @Override
     public void coGroup(Iterable<CommentRecord> comments, Iterable<PostRecord> posts, Collector<Tuple3<Long, Integer, Long>> collector) throws Exception {

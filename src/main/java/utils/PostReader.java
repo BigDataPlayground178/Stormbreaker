@@ -6,6 +6,9 @@ import org.apache.flink.api.common.functions.MapFunction;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * This class can be used to map raw strings into PostRecords
+ */
 public class PostReader implements MapFunction<String, PostRecord> {
     @Override
     public PostRecord map(String s) throws Exception {

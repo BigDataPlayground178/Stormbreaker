@@ -8,6 +8,9 @@ import javax.annotation.Nullable;
 
 import static utils.StormbreakerConstants.DATASET_START_TIMESTAMP;
 
+/**
+ * This class can be used to extract watermarks from friendship records (in query 1)
+ */
 public class FriendshipCountWatermarks implements AssignerWithPeriodicWatermarks<FriendshipCount> {
 
     private long currentMaxTimestamp = DATASET_START_TIMESTAMP;

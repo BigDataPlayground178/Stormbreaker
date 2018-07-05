@@ -4,6 +4,9 @@ import entities.records.CommentRecord;
 import org.apache.flink.streaming.api.functions.AssignerWithPeriodicWatermarks;
 import org.apache.flink.streaming.api.watermark.Watermark;
 
+/**
+ * This class can be used to extract watermarks from comment records
+ */
 public class CommentRecordsWatermarks implements AssignerWithPeriodicWatermarks<CommentRecord> {
 
     private long currentMaxTimestamp;

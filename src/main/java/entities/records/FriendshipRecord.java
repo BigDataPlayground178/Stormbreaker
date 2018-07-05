@@ -2,6 +2,9 @@ package entities.records;
 
 import java.time.ZonedDateTime;
 
+/**
+ * This is the utility class to retrieve friendship (following -> followed users) records
+ */
 public class FriendshipRecord {
 
     private ZonedDateTime friendshipDate;

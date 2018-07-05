@@ -6,6 +6,9 @@ import org.apache.flink.api.common.functions.MapFunction;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * This class can be used to map raw strings into FriendshipRecords
+ */
 public class FriendshipReader implements MapFunction<String, FriendshipRecord> {
 
     public FriendshipRecord map(String s) throws Exception {

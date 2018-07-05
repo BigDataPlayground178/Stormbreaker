@@ -4,6 +4,10 @@ import org.apache.flink.api.common.functions.CoGroupFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 
+/**
+ * This class is an extension of a CoGroupFunction to join "a" and "bc" score streams
+ * in order to compute correctly the "abc" score
+ */
 public class UserRankJoin implements CoGroupFunction<Tuple3<Long, Integer, Long>, Tuple3<Long, Integer, Long>, Tuple3<Long, Integer, Long>> {
 
 

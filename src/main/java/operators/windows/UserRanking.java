@@ -6,6 +6,9 @@ import org.apache.flink.streaming.api.functions.windowing.AllWindowFunction;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.util.Collector;
 
+/**
+ * This class is an extension of an AllWindowFunction to create a UserRank object in a given window
+ */
 public class UserRanking implements AllWindowFunction<Tuple3<Long, Integer, Long>, UserRank, TimeWindow> {
 
     @Override

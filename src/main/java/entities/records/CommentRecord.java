@@ -2,6 +2,9 @@ package entities.records;
 
 import java.time.ZonedDateTime;
 
+/**
+ * This is the utility class to retrieve comments records
+ */
 public class CommentRecord {
     private ZonedDateTime timestamp;
     private Long comment_id;

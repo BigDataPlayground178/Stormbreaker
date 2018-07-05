@@ -27,4 +27,6 @@ public class StormbreakerConstants {
     public static final Integer USERS_RANKING_DAY_HOUR = 24;
     public static final Integer USERS_RANKING_WEEK_DAY = 7;
     public static final Integer USERS_RANKING_MAX      = 10;
+
+    public static final Integer POST_RANKING_MAX       = 10;
 }
