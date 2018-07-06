@@ -4,8 +4,8 @@ public class StormbreakerConstants {
 
     public static final String STORMBREAKER_ENV        = "Stormbreaker";
 
-    public static final String KAFKA_BOOTSTRAP_SERVER  = "192.168.1.7:9092";
-    public static final String KAFKA_ZOOKEEPER_SERVER  = "192.168.1.7:2181";
+    public static final String KAFKA_BOOTSTRAP_SERVER  = "localhost:9092";
+    public static final String KAFKA_ZOOKEEPER_SERVER  = "localhost:2181";
     public static final String KAFKA_FRIENDSHIP_TOPIC  = "friendships";
     public static final String KAFKA_COMMENTS_TOPIC    = "comments";
     public static final String KAFKA_POSTS_TOPIC       = "posts";
