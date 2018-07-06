@@ -6,7 +6,7 @@ import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.util.Collector;
 
 /**
- * This class if an extension of a FlatMapFunctions to remap a friendship record in a tuple composed
+ * This class is an extension of a FlatMapFunctions to remap a friendship record in a tuple composed
  * by (user_id, initial score (1), timestamp)
  */
 public class UserInteractionsFlatMap implements FlatMapFunction<FriendshipRecord, Tuple3<Long, Integer, Long>> {
