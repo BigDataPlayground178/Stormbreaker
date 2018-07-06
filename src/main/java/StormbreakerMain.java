@@ -210,7 +210,7 @@ public class StormbreakerMain {
                 .apply(new UserRanking());
 
         // [24h] -> sink rank to InfluxDB
-        userRankHour.addSink(new InfluxDBUserRankSink("userrank_day"));
+        userRankDay.addSink(new InfluxDBUserRankSink("userrank_day"));
 
 
         // [7d] -> sink ranks to InfluxDB
@@ -219,14 +219,14 @@ public class StormbreakerMain {
                 .apply(new UserRanking());
 
         // [7d] -> retrieving first N users to build the ranking
-        userRankHour.addSink(new InfluxDBUserRankSink("userrank_week"));
+        userRankWeek.addSink(new InfluxDBUserRankSink("userrank_week"));
 
 
 
         // ---------------------- END QUERY 3 ----------------------
 
         // DEBUG: printing execution plan
-        // System.out.println(env.getExecutionPlan());
+        System.out.println(env.getExecutionPlan());
         // running streaming environment
         env.execute(STORMBREAKER_ENV);
     }
