@@ -10,8 +10,7 @@ import org.influxdb.dto.Point;
 
 import java.util.concurrent.TimeUnit;
 
-import static utils.StormbreakerConstants.INFLUX_DB_HOST;
-import static utils.StormbreakerConstants.INFLUX_DB_PORT;
+import static utils.StormbreakerConstants.*;
 
 /**
  * Sink Class that allows the injection of PostRank objects in InfluxDB
@@ -33,7 +32,7 @@ public class InfluxDBPostRankSink extends RichSinkFunction<PostRank> {
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
         InfluxDB influxDB = InfluxDBFactory.connect("http://" + INFLUX_DB_HOST + ":" + INFLUX_DB_PORT);
-        influxDB.setDatabase("mydb");
+        influxDB.setDatabase(INFLUX_DB_DB);
         this.influxDB = influxDB;
     }
 

@@ -12,6 +12,7 @@ public class StormbreakerConstants {
 
     public static final String INFLUX_DB_HOST          = "127.0.0.1";
     public static final String INFLUX_DB_PORT          = "8086";
+    public static final String INFLUX_DB_DB            = "mydb";
 
     public static final String FRIENDSHIP_DAT_PATH     = "friendships.dat";
     public static final String COMMENTS_DAT_PATH       = "comments.dat";
