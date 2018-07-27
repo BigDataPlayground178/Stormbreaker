@@ -13,8 +13,9 @@ import operators.sinks.InfluxDBUserRankSink;
 import operators.watermarks.*;
 import operators.windows.*;
 import org.apache.flink.api.common.functions.FilterFunction;
-import org.apache.flink.api.common.serialization.SimpleStringSchema;
+import org.apache.flink.api.java.io.TextInputFormat;
 import org.apache.flink.api.java.tuple.Tuple3;
+import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.AllWindowedStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -23,7 +24,6 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011;
 import utils.CommentReader;
 import utils.FriendshipReader;
 import utils.PostReader;
@@ -50,6 +50,7 @@ public class StormbreakerMain {
         properties.setProperty("zookeeper.connect", KAFKA_ZOOKEEPER_SERVER);
 
 
+        /*
         // -> friendships records
         DataStream<FriendshipRecord> friendshipStream = env
                 .addSource(new FlinkKafkaConsumer011<>(KAFKA_FRIENDSHIP_TOPIC, new SimpleStringSchema(), properties))
@@ -62,18 +63,18 @@ public class StormbreakerMain {
         DataStream<PostRecord> postsStream = env
                 .addSource(new FlinkKafkaConsumer011<>(KAFKA_POSTS_TOPIC, new SimpleStringSchema(), properties))
                 .map(new PostReader()).name("postsStreamFromKafka");
-
+        */
 
 
         // --------------------- START QUERY 1 ---------------------
         // [SAMPLE] retrieving input friendship records from file
-        /*
+
         String friendshipSamplePath = StormbreakerMain.class.getResource(FRIENDSHIP_DAT_PATH).getPath();
         DataStream<FriendshipRecord> friendshipStream = env.readFile(
                 new TextInputFormat(new Path(friendshipSamplePath)),
                 friendshipSamplePath
         ).setParallelism(1).map(new FriendshipReader());
-        */
+
 
         // -> setting parallelism
         ((SingleOutputStreamOperator<FriendshipRecord>) friendshipStream).setParallelism(1);
@@ -119,14 +120,14 @@ public class StormbreakerMain {
 
         // --------------------- START QUERY 2 ---------------------
         // [SAMPLE] retrieving input comments records from file
-        /*
+
         String commentsSamplePath = StormbreakerMain.class.getResource(COMMENTS_DAT_PATH).getPath();
         String postsSamplePath = StormbreakerMain.class.getResource(POSTS_DAT_PATH).getPath();
         DataStream<CommentRecord> commentsStream = env.readFile(
                 new TextInputFormat(new Path(commentsSamplePath)),
                 commentsSamplePath
         ).setParallelism(1).map(new CommentReader());
-        */
+
 
         // -> Assign timestamps and Watermarks to stream of Comments
         commentsStream = commentsStream.assignTimestampsAndWatermarks(new CommentRecordsWatermarks());
@@ -160,10 +161,10 @@ public class StormbreakerMain {
         // ---------------------- END QUERY 2 ----------------------
 
         // [SAMPLE] retrieving posts stream
-        // DataStream<PostRecord> postsStream = env.readFile(
-        //        new TextInputFormat(new Path(postsSamplePath)),
-        //                              postsSamplePath
-        //).setParallelism(1).map(new PostReader());
+         DataStream<PostRecord> postsStream = env.readFile(
+                new TextInputFormat(new Path(postsSamplePath)),
+                                      postsSamplePath
+        ).setParallelism(1).map(new PostReader());
 
         // -> assigning timestamp and watermarks to stream of Posts
         DataStream<PostRecord> postRecordDataStream = postsStream.assignTimestampsAndWatermarks(new PostRecordsWatermarks());
@@ -226,7 +227,7 @@ public class StormbreakerMain {
         // ---------------------- END QUERY 3 ----------------------
 
         // DEBUG: printing execution plan
-        System.out.println(env.getExecutionPlan());
+        //System.out.println(env.getExecutionPlan());
         // running streaming environment
         env.execute(STORMBREAKER_ENV);
     }

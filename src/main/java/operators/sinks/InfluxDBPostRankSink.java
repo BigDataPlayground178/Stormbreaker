@@ -40,6 +40,12 @@ public class InfluxDBPostRankSink extends RichSinkFunction<PostRank> {
     public void invoke(PostRank value, SinkFunction.Context context) {
         influxDB.write(Point.measurement(series_name)
                 .time(value.getTS(), TimeUnit.MILLISECONDS)
+                //.addField("rank", value.getTopRank().toString())
+                .fields(value.getTopRank())
+                .build());
+
+        influxDB.write(Point.measurement(series_name + "_rank")
+                .time(value.getTS(), TimeUnit.MILLISECONDS)
                 .addField("rank", value.getTopRank().toString())
                 .build());
     }

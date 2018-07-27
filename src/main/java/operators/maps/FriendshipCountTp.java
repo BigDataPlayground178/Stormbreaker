@@ -12,6 +12,7 @@ import org.apache.flink.metrics.Meter;
 public class FriendshipCountTp extends RichMapFunction<FriendshipCount, Object> {
     private transient Meter meter;
     private String metername;
+    private double maxRate = 0.0;
 
     public FriendshipCountTp(String name) {
         this.metername = name;
@@ -28,6 +29,9 @@ public class FriendshipCountTp extends RichMapFunction<FriendshipCount, Object> 
     @Override
     public Object map(FriendshipCount friendshipCount) throws Exception {
         this.meter.markEvent();
+        if (meter.getRate() > maxRate) {
+            maxRate = meter.getRate();
+        }
         System.out.println(metername + " rate: " + meter.getRate());
         return friendshipCount;
     }

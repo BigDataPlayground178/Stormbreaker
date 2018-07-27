@@ -33,7 +33,7 @@ public class PostRank {
      * Return the top 10 of the most commented posts
      * @return Map<String,Long> of PostID / Number of Comments it received
      */
-    public Map<String, Long> getTopRank() {
+    public Map<String, Object> getTopRank() {
         return rank.entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                 .limit(POST_RANKING_MAX)
@@ -42,9 +42,9 @@ public class PostRank {
 
     @Override
     public String toString() {
-        Map<String,Long> toprank = getTopRank();
+        Map<String,Object> toprank = getTopRank();
         StringBuilder result = new StringBuilder(ts + " , ");
-        for (Map.Entry<String, Long> entry : toprank.entrySet()) {
+        for (Map.Entry<String, Object> entry : toprank.entrySet()) {
             result.append(entry.getKey()).append(" , ").append(entry.getValue()).append(" , ");
         }
         result.delete(result.length() - 3, result.length());
